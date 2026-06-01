@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amministrato vs Dichiarativo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>body { font-family: sans-serif; margin: 2rem; background: #121212; color: #fff; }</style>
+</head>
+<body>
+    <h2>Proiezione 30 Anni: Vendita 2% (10x/Anno)</h2>
+    <canvas id="chart" width="800" height="400"></canvas>
+
+    <script>
+        const capital = 100000, opsPerYear = 10, sellPercent = 0.02, years = 30, annualGrowth = 0.06, taxRate = 0.26;
+        let ammPort = capital, ammAmt = capital; // Valore e PMC Amministrato
+        let dicPort = capital, dicAmt = capital; // Valore e PMC Dichiarativo
+        let labels = [], dataAmm = [], dataDic = [];
+
+        for (let y = 1; y <= years; y++) {
+            let dicTaxYear = 0;
+            for (let op = 0; op < opsPerYear; op++) {
+                let growth = Math.pow(1 + annualGrowth, 1/opsPerYear);
+                ammPort *= growth; 
+                dicPort *= growth;
+
+                // Amministrato: Tassa subito, scala dal portafoglio, aggiorna PMC
+                let soldAmm = ammPort * sellPercent;
+                let costAmm = ammAmt * sellPercent;
+                let taxAmm = Math.max(0, soldAmm - costAmm) * taxRate;
+                ammPort -= taxAmm;
+                ammAmt = ammAmt - costAmm + (soldAmm - taxAmm);
+
+                // Dichiarativo: Accumula tassa, non scala dal portafoglio, aggiorna PMC
+                let soldDic = dicPort * sellPercent;
+                let costDic = dicAmt * sellPercent;
+                dicTaxYear += Math.max(0, soldDic - costDic) * taxRate;
+                dicAmt = dicAmt - costDic + soldDic;
+            }
+            // Dichiarativo paga le tasse accumulate a fine anno
+            dicPort -= dicTaxYear; 
+            
+            labels.push(`Anno ${y}`);
+            dataAmm.push(ammPort);
+            dataDic.push(dicPort);
+        }
+
+        new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Dichiarativo (€)', data: dataDic, borderColor: '#4caf50', fill: false },
+                    { label: 'Amministrato (€)', data: dataAmm, borderColor: '#f44336', fill: false }
+                ]
+            }
+        });
+    </script>
+</body>
+</html>
