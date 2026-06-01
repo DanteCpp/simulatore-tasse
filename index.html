@@ -26,16 +26,18 @@
 
   .params-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem 1.25rem;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 1.25rem;
     margin-bottom: 1rem;
   }
+  @media (max-width: 640px) { .params-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 400px) { .params-grid { grid-template-columns: 1fr; } }
   .param {
-    display: flex; flex-direction: column; gap: 0.25rem;
+    display: flex; flex-direction: column; gap: 0.35rem;
   }
   .param label {
     font-size: 0.78rem; color: var(--muted);
@@ -48,6 +50,7 @@
   .param input[type="range"] {
     -webkit-appearance: none; width: 100%; height: 6px;
     background: #333; border-radius: 3px; outline: none; cursor: pointer;
+    margin: 0.35rem 0;
   }
   .param input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none; width: 20px; height: 20px;
@@ -55,8 +58,8 @@
   }
   .param input[type="number"] {
     background: #2a2a2a; border: 1px solid var(--border);
-    color: var(--text); border-radius: 6px; padding: 0.4rem 0.5rem;
-    font-size: 0.85rem; width: 100%;
+    color: var(--text); border-radius: 6px; padding: 0.45rem 0.5rem;
+    font-size: 0.85rem; width: 100%; margin-top: 0.15rem;
   }
   .param input[type="number"]:focus {
     outline: none; border-color: var(--accent);
