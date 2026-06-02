@@ -135,15 +135,15 @@
     <canvas id="deltaChart"></canvas>
   </div>
 
-  <div class="chart-wrap">
-    <canvas id="chart"></canvas>
-  </div>
-
   <div class="table-wrap">
     <table id="milestoneTable">
       <thead></thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
   </div>
 </div>
 
@@ -377,7 +377,7 @@ function buildMilestoneTable(dataA, dataD, totalYears) {
   const idxs = milestones.map(y => y - 1);
   const thead = document.querySelector('#milestoneTable thead');
   const tbody = document.querySelector('#milestoneTable tbody');
-  thead.innerHTML = '<tr><th>Milestone</th>' + milestones.map(y => `<th>Anno ${y}</th>`).join('') + '</tr>';
+  thead.innerHTML = '<tr><th>Regime</th>' + milestones.map(y => `<th>Anno ${y}</th>`).join('') + '</tr>';
   tbody.innerHTML = '';
   [
     { cls: 'row-dic', label: 'Dichiarativo €', data: dataD },
