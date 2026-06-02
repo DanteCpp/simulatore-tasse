@@ -95,6 +95,23 @@
   .table-wrap {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 0.75rem; overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .info-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    font-size: 0.88rem; line-height: 1.55; color: var(--text);
+  }
+  .info-box h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.75rem; }
+  .info-box p { margin-bottom: 0.7rem; }
+  .info-box ul { margin: 0 0 0.7rem 1.1rem; }
+  .info-box li { margin-bottom: 0.4rem; }
+  .info-box strong { color: #fff; }
+  .info-box em { color: var(--accent); font-style: normal; }
+  .info-box .disclaimer {
+    margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border);
+    font-size: 0.78rem; color: var(--muted); font-style: italic; margin-bottom: 0;
   }
   table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   th, td { padding: 0.45rem 0.5rem; text-align: right; }
@@ -110,8 +127,8 @@
 </head>
 <body>
 <div class="container">
-  <h1>📊 Simulatore Fiscale Investimenti</h1>
-  <p class="subtitle">Confronto Regime Amministrato vs Dichiarativo — Capital gain 26%</p>
+  <h1>Regimi Fiscali a Confronto</h1>
+  <p class="subtitle">Amministrato vs Dichiarativo</p>
 
   <div class="params-grid" id="paramsGrid"></div>
 
@@ -119,19 +136,20 @@
     <div class="card amm">
       <h3>🏦 Regime Amministrato</h3>
       <div class="big" id="ammFinal">€ 0</div>
-      <div class="sub">Tasse pagate subito (a ogni vendita): <strong id="ammTax">€ 0</strong></div>
-      <div class="sub">Totale investito (capitale + PAC): <strong id="ammInv">€ 0</strong></div>
+      <div class="sub">Tasse pagate: <strong id="ammTax">€ 0</strong></div>
     </div>
     <div class="card dic">
       <h3>📝 Regime Dichiarativo</h3>
       <div class="big" id="dicFinal">€ 0</div>
-      <div class="sub">Tasse pagate a fine anno: <strong id="dicTax">€ 0</strong></div>
-      <div class="sub">di cui coperte da PAC: <strong id="dicTaxPac">€ 0</strong> &nbsp;|&nbsp; da vendita titoli: <strong id="dicTaxSell">€ 0</strong></div>
+      <div class="sub" style="display:flex; justify-content:space-between; gap:0.5rem;">
+        <span>Tasse pagate: <strong id="dicTax">€ 0</strong></span>
+        <span>Costi contabili: <strong id="dicFee">€ 0</strong></span>
+      </div>
     </div>
   </div>
 
   <div class="chart-wrap">
-    <canvas id="chart"></canvas>
+    <canvas id="deltaChart"></canvas>
   </div>
 
   <div class="table-wrap">
@@ -140,26 +158,51 @@
       <tbody></tbody>
     </table>
   </div>
+
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="info-box">
+    <h3>Come funziona e cosa assume</h3>
+    <p>Questo strumento confronta nel tempo due modi di tassare gli investimenti finanziari: il <strong>regime amministrato</strong> e il <strong>regime dichiarativo</strong>. In entrambi le plusvalenze pagano la stessa aliquota del <strong>26%</strong>: l'unica differenza reale è <em>quando</em> si versa l'imposta.</p>
+    <ul>
+      <li><strong>Amministrato:</strong> la banca trattiene la tassa <em>subito</em>, a ogni operazione. Il denaro delle imposte esce immediatamente e smette di rendere.</li>
+      <li><strong>Dichiarativo:</strong> le tasse maturate durante l'anno restano investite e si pagano <em>a fine anno</em>. Restando investite qualche mese in più, generano un piccolo extra-rendimento: è il vantaggio del <em>differimento</em>.</li>
+    </ul>
+    <p><strong>Premesse del modello (semplificazioni):</strong></p>
+    <ul>
+      <li>Il capitale cresce ogni mese in base al rendimento annuo scelto (interesse composto).</li>
+      <li>Il <strong>PAC</strong> (versamento mensile) viene investito ogni mese e aumenta il capitale.</li>
+      <li>Ogni anno si <strong>ribilancia</strong> una quota del portafoglio pari al <em>turnover</em> impostato: solo su quella parte si realizza la plusvalenza e si pagano le tasse. Il resto resta latente e continua a crescere senza tassazione.</li>
+      <li>Le tasse si pagano <strong>vendendo titoli</strong> in entrambi i regimi.</li>
+      <li>I <strong>costi contabili</strong> (es. commercialista) si applicano solo al dichiarativo e si sottraggono ogni anno.</li>
+      <li>Si ipotizzano solo guadagni: <strong>non</strong> sono modellate le perdite (minusvalenze) né eventuali bolli o altre imposte.</li>
+      <li>Le plusvalenze ancora <strong>latenti a fine simulazione non vengono tassate</strong>: il confronto è valido a parità di turnover, ma scenari con turnover molto diversi non sono confrontabili tra loro.</li>
+    </ul>
+    <p>In sintesi: i numeri sono una <strong>stima indicativa</strong> per capire gli ordini di grandezza e l'effetto del differimento fiscale, non un calcolo fiscale ufficiale.</p>
+    <p class="disclaimer">Disclaimer: questa dashboard è stata realizzata con l'ausilio di strumenti di programmazione automatica. Il fine della simulazione è puramente illustrativo e non rappresenta in alcun modo un consiglio finanziario. La simulazione può contenere errori di analisi o di premesse: sono quindi aperto a discussioni e correzioni.</p>
+  </div>
 </div>
 
 <script>
 // ===================== PARAMETRI =====================
 const defaults = {
   capital:      100000,
-  monthlyPac:   0,
-  opsPerYear:   10,
-  sellPercent:  2,
+  monthlyPac:   1000,
+  annualGrowth: 10,
+  turnover:     10,
+  accountingCost: 100,
   years:        30,
-  annualGrowth: 6,
 };
 
 const paramDefs = [
-  { key: 'capital',      label: 'Capitale iniziale',        unit: '€',   min: 1000,  max: 1000000, step: 1000, fmt: v => v.toLocaleString('it-IT') },
-  { key: 'monthlyPac',   label: 'PAC mensile',              unit: '€',   min: 0,     max: 5000,    step: 50,   fmt: v => v.toLocaleString('it-IT') },
-  { key: 'annualGrowth', label: 'Rendimento annuo',         unit: '%',   min: 0,     max: 20,      step: 0.5,  fmt: v => v.toFixed(1) },
-  { key: 'opsPerYear',   label: 'Operazioni di vendita/anno',unit: '',   min: 1,     max: 100,     step: 1,    fmt: v => v },
-  { key: 'sellPercent',  label: 'Quota venduta per operaz.',unit: '%',   min: 0.1,   max: 100,     step: 0.5,  fmt: v => v.toFixed(1) },
-  { key: 'years',        label: 'Orizzonte (anni)',         unit: '',    min: 1,     max: 50,      step: 1,    fmt: v => v },
+  { key: 'capital',        label: 'Capitale iniziale',        unit: '€',  min: 1000,  max: 1000000, step: 1000, fmt: v => v.toLocaleString('it-IT') },
+  { key: 'monthlyPac',     label: 'PAC mensile',              unit: '€',  min: 0,     max: 5000,    step: 50,   fmt: v => v.toLocaleString('it-IT') },
+  { key: 'annualGrowth',   label: 'Rendimento annuo',         unit: '%',  min: 0,     max: 20,      step: 0.5,  fmt: v => v.toFixed(1) },
+  { key: 'turnover',       label: 'Turnover annuo (ribilanc.)',unit: '%', min: 0,     max: 100,     step: 1,    fmt: v => v },
+  { key: 'accountingCost', label: 'Costi contabili annui (dich.)',unit: '€',min: 0,   max: 2000,    step: 10,   fmt: v => v.toLocaleString('it-IT') },
+  { key: 'years',          label: 'Orizzonte (anni)',         unit: '',   min: 1,     max: 50,      step: 1,    fmt: v => v },
 ];
 
 const params = { ...defaults };
@@ -207,26 +250,30 @@ function onNumber(key, raw) {
 }
 
 // ===================== SIMULAZIONE =====================
-let chart;
+let chart, deltaChart;
 
 function simulate() {
   const cap       = params.capital;
   const monthly   = params.monthlyPac;
-  const ops       = params.opsPerYear;
-  const sellPct   = params.sellPercent / 100;
   const yrs       = params.years;
   const growthAnn = params.annualGrowth / 100;
+  const turnover  = params.turnover / 100; // quota di portafoglio ribilanciata/anno
+  const acctCost  = params.accountingCost; // costi contabili annui (solo dichiarativo)
   const taxRate   = 0.26;
 
-  const monthGrowth = Math.pow(1 + growthAnn, 1/12) - 1;
+  const monthGrowth     = Math.pow(1 + growthAnn, 1/12) - 1;
+  const monthlyTurnover = turnover / 12;   // ribilanciamento spalmato sui 12 mesi
 
-  // Costo totale (Σ Pᵢ×Qᵢ) — non il PMC unitario, ma il numeratore
-  let aPort = cap, aCost = cap;
-  let dPort = cap, dCost = cap;
-  let totalInvested = cap; // capitale + PAC cumulato (uguale per entrambi)
+  // Modello: un solo aggregato di costo di carico per regime (port = valore,
+  // cost = costo di carico). Ogni mese si ribilancia (vende+ricompra) una fetta
+  // = turnover/12 del portafoglio, realizzando la plusvalenza incorporata in
+  // quella fetta. La parte non ribilanciata resta latente (differita). La sola
+  // differenza tra i regimi è QUANDO si paga la tassa sul realizzato.
+  let aPort = cap, aCost = cap; // Amministrato: tassa trattenuta subito
+  let dPort = cap, dCost = cap; // Dichiarativo: tassa accumulata, saldata a fine anno
 
   let labels = [], dataA = [], dataD = [];
-  let aTaxTot = 0, dTaxTot = 0, dTaxFromPacTot = 0, dTaxFromSellTot = 0;
+  let aTaxTot = 0, dTaxTot = 0, dFeeTot = 0;
 
   const totalMonths = yrs * 12;
   let dTaxYear = 0; // accumula le tasse dell'anno corrente per il dichiarativo
@@ -234,58 +281,56 @@ function simulate() {
   for (let m = 1; m <= totalMonths; m++) {
     const monthInYear = ((m - 1) % 12) + 1;
 
-    // --- Crescita mensile su entrambi i portafogli ---
+    // --- Crescita mensile (plusvalenza latente, non ancora realizzata) ---
     aPort *= (1 + monthGrowth);
     dPort *= (1 + monthGrowth);
 
-    // --- PAC mensile: investito subito, aumenta portafoglio e costo ---
+    // --- PAC mensile: capitale versato → aumenta valore E costo di carico ---
     if (monthly > 0) {
       aPort += monthly; aCost += monthly;
       dPort += monthly; dCost += monthly;
-      totalInvested += monthly;
     }
 
-    // --- Operazioni di vendita distribuite nei 12 mesi ---
-    let opsDue = Math.floor((m * ops) / 12) - Math.floor(((m - 1) * ops) / 12);
-
-    for (let o = 0; o < opsDue; o++) {
-      // Amministrato
-      let sA = aPort * sellPct;
-      let cA = aCost * sellPct;
-      let gA = sA - cA;
-      let tA = Math.max(0, gA) * taxRate;
+    // --- Ribilanciamento: vendo+ricompro una fetta del portafoglio ---
+    // Amministrato: tassa sulla plusvalenza incorporata, pagata SUBITO
+    {
+      const sellVal  = aPort * monthlyTurnover;
+      const sellCost = aCost * monthlyTurnover;
+      const tA = Math.max(0, sellVal - sellCost) * taxRate;
       aPort -= tA;
       aTaxTot += tA;
-      aCost = aCost * (1 - sellPct) + (sA - tA);
-
-      // Dichiarativo
-      let sD = dPort * sellPct;
-      let cD = dCost * sellPct;
-      let gD = sD - cD;
-      let tD = Math.max(0, gD) * taxRate;
-      dTaxYear += tD;
-      dCost = dCost * (1 - sellPct) + sD;
+      aCost = aCost - sellCost + (sellVal - tA); // ricompro col netto d'imposta
+    }
+    // Dichiarativo: stessa plusvalenza, tassa ACCUMULATA per fine anno
+    {
+      const sellVal  = dPort * monthlyTurnover;
+      const sellCost = dCost * monthlyTurnover;
+      dTaxYear += Math.max(0, sellVal - sellCost) * taxRate;
+      dCost = dCost - sellCost + sellVal;        // ricompro col lordo
     }
 
-    // --- Fine anno: il dichiarativo paga le tasse ---
+    // --- Fine anno: il dichiarativo salda le tasse accumulate ---
     if (monthInYear === 12) {
-      let taxOwed = dTaxYear;
-      let yearlyPac = 12 * monthly;
+      const taxOwed = dTaxYear;
 
-      if (yearlyPac >= taxOwed) {
-        dPort -= taxOwed;
-        dTaxFromPacTot += taxOwed;
-      } else {
-        let coveredByPac = yearlyPac;
-        let shortfall = taxOwed - coveredByPac;
-        dPort -= taxOwed;
-        dTaxFromPacTot += coveredByPac;
-        dTaxFromSellTot += shortfall;
-        let sellFrac = shortfall / (dPort + taxOwed);
-        dCost *= (1 - sellFrac);
-      }
+      // Le tasse si pagano liquidando titoli: il pagamento esce dal portafoglio
+      // riducendone valore e costo di carico in proporzione (la % di
+      // plusvalenza latente resta invariata).
+      const fracSold = dPort > 0 ? taxOwed / dPort : 0;
+      dPort -= taxOwed;
+      dCost *= (1 - fracSold);
+
       dTaxTot += taxOwed;
       dTaxYear = 0; // reset per l'anno successivo
+
+      // Costi contabili annui (commercialista/dichiarazione): solo dichiarativo.
+      // Pagati liquidando dal portafoglio, riducono valore e costo in proporzione.
+      if (acctCost > 0 && dPort > 0) {
+        const feeFrac = Math.min(1, acctCost / dPort);
+        dPort -= acctCost;
+        dCost *= (1 - feeFrac);
+        dFeeTot += acctCost;
+      }
     }
 
     // Registra punto dati annuale
@@ -302,19 +347,19 @@ function simulate() {
   document.getElementById('dicFinal').textContent = '€ ' + dataD[dataD.length-1].toLocaleString('it-IT', {maximumFractionDigits:0});
   document.getElementById('ammTax').textContent  = '€ ' + Math.round(aTaxTot).toLocaleString('it-IT');
   document.getElementById('dicTax').textContent  = '€ ' + Math.round(dTaxTot).toLocaleString('it-IT');
-  document.getElementById('dicTaxPac').textContent  = '€ ' + Math.round(dTaxFromPacTot).toLocaleString('it-IT');
-  document.getElementById('dicTaxSell').textContent = '€ ' + Math.round(dTaxFromSellTot).toLocaleString('it-IT');
-  document.getElementById('ammInv').textContent = '€ ' + Math.round(totalInvested).toLocaleString('it-IT');
+  document.getElementById('dicFee').textContent  = '€ ' + Math.round(dFeeTot).toLocaleString('it-IT');
 
-  // --- Chart ---
-  if (chart) chart.destroy();
-  chart = new Chart(document.getElementById('chart'), {
-    type: 'line',
+  // --- Delta chart (Dichiarativo − Amministrato) ---
+  const dataDelta = dataD.map((v, i) => Math.round((v - dataA[i]) * 100) / 100);
+  if (deltaChart) deltaChart.destroy();
+  deltaChart = new Chart(document.getElementById('deltaChart'), {
+    type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Dichiarativo', data: dataD, borderColor: '#66bb6a', backgroundColor: 'rgba(102,187,106,0.08)', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-        { label: 'Amministrato', data: dataA, borderColor: '#ef5350', backgroundColor: 'rgba(239,83,80,0.05)', fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+        { label: 'Δ Dichiarativo − Amministrato', data: dataDelta,
+          backgroundColor: dataDelta.map(d => d >= 0 ? '#66bb6a' : '#ef5350'),
+          borderWidth: 0, categoryPercentage: 0.8, barPercentage: 0.9 },
       ],
     },
     options: {
@@ -322,11 +367,40 @@ function simulate() {
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
       plugins: {
+        title: { display: true, text: 'Differenza patrimonio (Dichiarativo − Amministrato)', color: '#e0e0e0', font: { size: 14, weight: '600' }, padding: { bottom: 12 } },
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => 'Δ: € ' + ctx.parsed.y.toLocaleString('it-IT', {maximumFractionDigits:0}) } }
+      },
+      scales: {
+        x: { ticks: { color: '#666', maxTicksLimit: 15, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#666', font: { size: 10 }, callback: v => '€ ' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+  document.getElementById('deltaChart').style.height = '180px';
+
+  // --- Chart ---
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Dichiarativo', data: dataD, backgroundColor: '#66bb6a', borderColor: '#66bb6a', borderWidth: 0, categoryPercentage: 0.8, barPercentage: 0.9 },
+        { label: 'Amministrato', data: dataA, backgroundColor: '#ef5350', borderColor: '#ef5350', borderWidth: 0, categoryPercentage: 0.8, barPercentage: 0.9 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        title: { display: true, text: 'Andamento del conto', color: '#e0e0e0', font: { size: 14, weight: '600' }, padding: { bottom: 12 } },
         legend: { labels: { color: '#999', usePointStyle: true, padding: 20, font: { size: 12 } } },
         tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': € ' + ctx.parsed.y.toLocaleString('it-IT', {maximumFractionDigits:0}) } }
       },
       scales: {
-        x: { ticks: { color: '#666', maxTicksLimit: 15, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        x: { ticks: { color: '#666', maxTicksLimit: 15, font: { size: 10 } }, grid: { display: false } },
         y: { ticks: { color: '#666', font: { size: 10 }, callback: v => '€ ' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
       }
     }
@@ -339,10 +413,11 @@ function simulate() {
 
 function buildMilestoneTable(dataA, dataD, totalYears) {
   const milestones = [1, 3, 5, 10, 15, 20, 25, 30].filter(y => y <= totalYears);
-  const idxs = milestones.map(y => y - 1).concat([totalYears - 1]);
+  if (!milestones.includes(totalYears)) milestones.push(totalYears);
+  const idxs = milestones.map(y => y - 1);
   const thead = document.querySelector('#milestoneTable thead');
   const tbody = document.querySelector('#milestoneTable tbody');
-  thead.innerHTML = '<tr><th>Milestone</th>' + milestones.map(y => `<th>Anno ${y}</th>`).join('') + `<th>Anno ${totalYears}</th></tr>`;
+  thead.innerHTML = '<tr><th>Regime</th>' + milestones.map(y => `<th>Anno ${y}</th>`).join('') + '</tr>';
   tbody.innerHTML = '';
   [
     { cls: 'row-dic', label: 'Dichiarativo €', data: dataD },
