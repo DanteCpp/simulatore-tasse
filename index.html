@@ -125,8 +125,7 @@
     <div class="card dic">
       <h3>📝 Regime Dichiarativo</h3>
       <div class="big" id="dicFinal">€ 0</div>
-      <div class="sub">Tasse pagate a fine anno: <strong id="dicTax">€ 0</strong></div>
-      <div class="sub">di cui coperte da PAC: <strong id="dicTaxPac">€ 0</strong> &nbsp;|&nbsp; da vendita titoli: <strong id="dicTaxSell">€ 0</strong></div>
+      <div class="sub">Tasse pagate a fine anno (vendita titoli): <strong id="dicTax">€ 0</strong></div>
       <div class="sub">Costi contabili totali: <strong id="dicFee">€ 0</strong></div>
     </div>
   </div>
@@ -232,7 +231,7 @@ function simulate() {
   let totalInvested = cap;      // capitale + PAC cumulato (uguale per entrambi)
 
   let labels = [], dataA = [], dataD = [];
-  let aTaxTot = 0, dTaxTot = 0, dTaxFromPacTot = 0, dTaxFromSellTot = 0, dFeeTot = 0;
+  let aTaxTot = 0, dTaxTot = 0, dFeeTot = 0;
 
   const totalMonths = yrs * 12;
   let dTaxYear = 0; // accumula le tasse dell'anno corrente per il dichiarativo
@@ -272,26 +271,14 @@ function simulate() {
     // --- Fine anno: il dichiarativo salda le tasse accumulate ---
     if (monthInYear === 12) {
       const taxOwed = dTaxYear;
-      const yearlyPac = 12 * monthly;
-      const coveredByPac = Math.min(taxOwed, yearlyPac); // quota pagata col PAC
-      const shortfall    = taxOwed - coveredByPac;        // eccedenza → vende titoli
 
-      // Quota coperta dal PAC: liquidità accantonata (non titoli), pagata a
-      // valore nominale → riduce valore e costo di carico dello stesso importo
-      // (cassa contribuita, nessuna plusvalenza realizzata, nessun titolo venduto).
-      dPort -= coveredByPac;
-      dCost = Math.max(0, dCost - coveredByPac);
+      // Le tasse si pagano liquidando titoli: il pagamento esce dal portafoglio
+      // riducendone valore e costo di carico in proporzione (la % di
+      // plusvalenza latente resta invariata).
+      const fracSold = dPort > 0 ? taxOwed / dPort : 0;
+      dPort -= taxOwed;
+      dCost *= (1 - fracSold);
 
-      // Eventuale eccedenza: si vendono titoli, con plusvalenza incorporata
-      // (riduzione proporzionale del costo di carico).
-      if (shortfall > 0) {
-        const fracSold = dPort > 0 ? shortfall / dPort : 0;
-        dPort -= shortfall;
-        dCost *= (1 - fracSold);
-      }
-
-      dTaxFromPacTot  += coveredByPac;
-      dTaxFromSellTot += shortfall;
       dTaxTot += taxOwed;
       dTaxYear = 0; // reset per l'anno successivo
 
@@ -319,8 +306,6 @@ function simulate() {
   document.getElementById('dicFinal').textContent = '€ ' + dataD[dataD.length-1].toLocaleString('it-IT', {maximumFractionDigits:0});
   document.getElementById('ammTax').textContent  = '€ ' + Math.round(aTaxTot).toLocaleString('it-IT');
   document.getElementById('dicTax').textContent  = '€ ' + Math.round(dTaxTot).toLocaleString('it-IT');
-  document.getElementById('dicTaxPac').textContent  = '€ ' + Math.round(dTaxFromPacTot).toLocaleString('it-IT');
-  document.getElementById('dicTaxSell').textContent = '€ ' + Math.round(dTaxFromSellTot).toLocaleString('it-IT');
   document.getElementById('dicFee').textContent  = '€ ' + Math.round(dFeeTot).toLocaleString('it-IT');
   document.getElementById('ammInv').textContent = '€ ' + Math.round(totalInvested).toLocaleString('it-IT');
 
