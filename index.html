@@ -273,18 +273,25 @@ function simulate() {
     if (monthInYear === 12) {
       const taxOwed = dTaxYear;
       const yearlyPac = 12 * monthly;
+      const coveredByPac = Math.min(taxOwed, yearlyPac); // quota pagata col PAC
+      const shortfall    = taxOwed - coveredByPac;        // eccedenza → vende titoli
 
-      // Il pagamento esce dal portafoglio riducendone valore e costo di carico
-      // in proporzione (la % di plusvalenza latente resta invariata).
-      const fracSold = dPort > 0 ? taxOwed / dPort : 0;
-      dPort -= taxOwed;
-      dCost *= (1 - fracSold);
-      if (yearlyPac >= taxOwed) {
-        dTaxFromPacTot += taxOwed;
-      } else {
-        dTaxFromPacTot += yearlyPac;
-        dTaxFromSellTot += taxOwed - yearlyPac;
+      // Quota coperta dal PAC: liquidità accantonata (non titoli), pagata a
+      // valore nominale → riduce valore e costo di carico dello stesso importo
+      // (cassa contribuita, nessuna plusvalenza realizzata, nessun titolo venduto).
+      dPort -= coveredByPac;
+      dCost = Math.max(0, dCost - coveredByPac);
+
+      // Eventuale eccedenza: si vendono titoli, con plusvalenza incorporata
+      // (riduzione proporzionale del costo di carico).
+      if (shortfall > 0) {
+        const fracSold = dPort > 0 ? shortfall / dPort : 0;
+        dPort -= shortfall;
+        dCost *= (1 - fracSold);
       }
+
+      dTaxFromPacTot  += coveredByPac;
+      dTaxFromSellTot += shortfall;
       dTaxTot += taxOwed;
       dTaxYear = 0; // reset per l'anno successivo
 
