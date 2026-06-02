@@ -127,6 +127,7 @@
       <div class="big" id="dicFinal">€ 0</div>
       <div class="sub">Tasse pagate a fine anno: <strong id="dicTax">€ 0</strong></div>
       <div class="sub">di cui coperte da PAC: <strong id="dicTaxPac">€ 0</strong> &nbsp;|&nbsp; da vendita titoli: <strong id="dicTaxSell">€ 0</strong></div>
+      <div class="sub">Costi contabili totali: <strong id="dicFee">€ 0</strong></div>
     </div>
   </div>
 
@@ -149,15 +150,17 @@ const defaults = {
   monthlyPac:   0,
   annualGrowth: 6,
   turnover:     10,
+  accountingCost: 100,
   years:        30,
 };
 
 const paramDefs = [
-  { key: 'capital',      label: 'Capitale iniziale',        unit: '€',   min: 1000,  max: 1000000, step: 1000, fmt: v => v.toLocaleString('it-IT') },
-  { key: 'monthlyPac',   label: 'PAC mensile',              unit: '€',   min: 0,     max: 5000,    step: 50,   fmt: v => v.toLocaleString('it-IT') },
-  { key: 'annualGrowth', label: 'Rendimento annuo',         unit: '%',   min: 0,     max: 20,      step: 0.5,  fmt: v => v.toFixed(1) },
-  { key: 'turnover',     label: 'Turnover annuo (ribilanc.)',unit: '%',  min: 0,     max: 100,     step: 1,    fmt: v => v },
-  { key: 'years',        label: 'Orizzonte (anni)',         unit: '',    min: 1,     max: 50,      step: 1,    fmt: v => v },
+  { key: 'capital',        label: 'Capitale iniziale',        unit: '€',  min: 1000,  max: 1000000, step: 1000, fmt: v => v.toLocaleString('it-IT') },
+  { key: 'monthlyPac',     label: 'PAC mensile',              unit: '€',  min: 0,     max: 5000,    step: 50,   fmt: v => v.toLocaleString('it-IT') },
+  { key: 'annualGrowth',   label: 'Rendimento annuo',         unit: '%',  min: 0,     max: 20,      step: 0.5,  fmt: v => v.toFixed(1) },
+  { key: 'turnover',       label: 'Turnover annuo (ribilanc.)',unit: '%', min: 0,     max: 100,     step: 1,    fmt: v => v },
+  { key: 'accountingCost', label: 'Costi contabili annui (dich.)',unit: '€',min: 0,   max: 2000,    step: 10,   fmt: v => v.toLocaleString('it-IT') },
+  { key: 'years',          label: 'Orizzonte (anni)',         unit: '',   min: 1,     max: 50,      step: 1,    fmt: v => v },
 ];
 
 const params = { ...defaults };
@@ -213,6 +216,7 @@ function simulate() {
   const yrs       = params.years;
   const growthAnn = params.annualGrowth / 100;
   const turnover  = params.turnover / 100; // quota di portafoglio ribilanciata/anno
+  const acctCost  = params.accountingCost; // costi contabili annui (solo dichiarativo)
   const taxRate   = 0.26;
 
   const monthGrowth     = Math.pow(1 + growthAnn, 1/12) - 1;
@@ -228,7 +232,7 @@ function simulate() {
   let totalInvested = cap;      // capitale + PAC cumulato (uguale per entrambi)
 
   let labels = [], dataA = [], dataD = [];
-  let aTaxTot = 0, dTaxTot = 0, dTaxFromPacTot = 0, dTaxFromSellTot = 0;
+  let aTaxTot = 0, dTaxTot = 0, dTaxFromPacTot = 0, dTaxFromSellTot = 0, dFeeTot = 0;
 
   const totalMonths = yrs * 12;
   let dTaxYear = 0; // accumula le tasse dell'anno corrente per il dichiarativo
@@ -283,6 +287,15 @@ function simulate() {
       }
       dTaxTot += taxOwed;
       dTaxYear = 0; // reset per l'anno successivo
+
+      // Costi contabili annui (commercialista/dichiarazione): solo dichiarativo.
+      // Pagati liquidando dal portafoglio, riducono valore e costo in proporzione.
+      if (acctCost > 0 && dPort > 0) {
+        const feeFrac = Math.min(1, acctCost / dPort);
+        dPort -= acctCost;
+        dCost *= (1 - feeFrac);
+        dFeeTot += acctCost;
+      }
     }
 
     // Registra punto dati annuale
@@ -301,6 +314,7 @@ function simulate() {
   document.getElementById('dicTax').textContent  = '€ ' + Math.round(dTaxTot).toLocaleString('it-IT');
   document.getElementById('dicTaxPac').textContent  = '€ ' + Math.round(dTaxFromPacTot).toLocaleString('it-IT');
   document.getElementById('dicTaxSell').textContent = '€ ' + Math.round(dTaxFromSellTot).toLocaleString('it-IT');
+  document.getElementById('dicFee').textContent  = '€ ' + Math.round(dFeeTot).toLocaleString('it-IT');
   document.getElementById('ammInv').textContent = '€ ' + Math.round(totalInvested).toLocaleString('it-IT');
 
   // --- Chart ---
