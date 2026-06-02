@@ -97,6 +97,18 @@
     border-radius: 12px; padding: 0.75rem; overflow-x: auto;
     margin-bottom: 1rem;
   }
+
+  .info-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    font-size: 0.88rem; line-height: 1.55; color: var(--text);
+  }
+  .info-box h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.75rem; }
+  .info-box p { margin-bottom: 0.7rem; }
+  .info-box ul { margin: 0 0 0.7rem 1.1rem; }
+  .info-box li { margin-bottom: 0.4rem; }
+  .info-box strong { color: #fff; }
+  .info-box em { color: var(--accent); font-style: normal; }
   table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   th, td { padding: 0.45rem 0.5rem; text-align: right; }
   th { color: var(--muted); font-weight: 500; font-size: 0.75rem; white-space: nowrap; }
@@ -145,6 +157,26 @@
 
   <div class="chart-wrap">
     <canvas id="chart"></canvas>
+  </div>
+
+  <div class="info-box">
+    <h3>Come funziona e cosa assume</h3>
+    <p>Questo strumento confronta nel tempo due modi di tassare gli investimenti finanziari: il <strong>regime amministrato</strong> e il <strong>regime dichiarativo</strong>. In entrambi le plusvalenze pagano la stessa aliquota del <strong>26%</strong>: l'unica differenza reale è <em>quando</em> si versa l'imposta.</p>
+    <ul>
+      <li><strong>Amministrato:</strong> la banca trattiene la tassa <em>subito</em>, a ogni operazione. Il denaro delle imposte esce immediatamente e smette di rendere.</li>
+      <li><strong>Dichiarativo:</strong> le tasse maturate durante l'anno restano investite e si pagano <em>a fine anno</em>. Restando investite qualche mese in più, generano un piccolo extra-rendimento: è il vantaggio del <em>differimento</em>.</li>
+    </ul>
+    <p><strong>Premesse del modello (semplificazioni):</strong></p>
+    <ul>
+      <li>Il capitale cresce ogni mese in base al rendimento annuo scelto (interesse composto).</li>
+      <li>Il <strong>PAC</strong> (versamento mensile) viene investito ogni mese e aumenta il capitale.</li>
+      <li>Ogni anno si <strong>ribilancia</strong> una quota del portafoglio pari al <em>turnover</em> impostato: solo su quella parte si realizza la plusvalenza e si pagano le tasse. Il resto resta latente e continua a crescere senza tassazione.</li>
+      <li>Le tasse si pagano <strong>vendendo titoli</strong> in entrambi i regimi.</li>
+      <li>I <strong>costi contabili</strong> (es. commercialista) si applicano solo al dichiarativo e si sottraggono ogni anno.</li>
+      <li>Si ipotizzano solo guadagni: <strong>non</strong> sono modellate le perdite (minusvalenze) né eventuali bolli o altre imposte.</li>
+      <li>Le plusvalenze ancora <strong>latenti a fine simulazione non vengono tassate</strong>: il confronto è valido a parità di turnover, ma scenari con turnover molto diversi non sono confrontabili tra loro.</li>
+    </ul>
+    <p>In sintesi: i numeri sono una <strong>stima indicativa</strong> per capire gli ordini di grandezza e l'effetto del differimento fiscale, non un calcolo fiscale ufficiale.</p>
   </div>
 </div>
 
