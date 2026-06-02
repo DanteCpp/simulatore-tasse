@@ -148,6 +148,7 @@ const defaults = {
   capital:      100000,
   monthlyPac:   0,
   annualGrowth: 6,
+  turnover:     10,
   years:        30,
 };
 
@@ -155,6 +156,7 @@ const paramDefs = [
   { key: 'capital',      label: 'Capitale iniziale',        unit: '€',   min: 1000,  max: 1000000, step: 1000, fmt: v => v.toLocaleString('it-IT') },
   { key: 'monthlyPac',   label: 'PAC mensile',              unit: '€',   min: 0,     max: 5000,    step: 50,   fmt: v => v.toLocaleString('it-IT') },
   { key: 'annualGrowth', label: 'Rendimento annuo',         unit: '%',   min: 0,     max: 20,      step: 0.5,  fmt: v => v.toFixed(1) },
+  { key: 'turnover',     label: 'Turnover annuo (ribilanc.)',unit: '%',  min: 0,     max: 100,     step: 1,    fmt: v => v },
   { key: 'years',        label: 'Orizzonte (anni)',         unit: '',    min: 1,     max: 50,      step: 1,    fmt: v => v },
 ];
 
@@ -210,16 +212,20 @@ function simulate() {
   const monthly   = params.monthlyPac;
   const yrs       = params.years;
   const growthAnn = params.annualGrowth / 100;
+  const turnover  = params.turnover / 100; // quota di portafoglio ribilanciata/anno
   const taxRate   = 0.26;
 
-  const monthGrowth = Math.pow(1 + growthAnn, 1/12) - 1;
+  const monthGrowth     = Math.pow(1 + growthAnn, 1/12) - 1;
+  const monthlyTurnover = turnover / 12;   // ribilanciamento spalmato sui 12 mesi
 
-  // Modello semplificato: nessun costo di carico. Si assume che l'intera
-  // plusvalenza annua (= rendimento dell'anno) venga realizzata e tassata
-  // ogni anno. La differenza tra i due regimi è solo QUANDO si paga la tassa.
-  let aPort = cap; // Amministrato: tassa trattenuta subito a ogni realizzo
-  let dPort = cap; // Dichiarativo: tassa accumulata e saldata a fine anno
-  let totalInvested = cap; // capitale + PAC cumulato (uguale per entrambi)
+  // Modello: un solo aggregato di costo di carico per regime (port = valore,
+  // cost = costo di carico). Ogni mese si ribilancia (vende+ricompra) una fetta
+  // = turnover/12 del portafoglio, realizzando la plusvalenza incorporata in
+  // quella fetta. La parte non ribilanciata resta latente (differita). La sola
+  // differenza tra i regimi è QUANDO si paga la tassa sul realizzato.
+  let aPort = cap, aCost = cap; // Amministrato: tassa trattenuta subito
+  let dPort = cap, dCost = cap; // Dichiarativo: tassa accumulata, saldata a fine anno
+  let totalInvested = cap;      // capitale + PAC cumulato (uguale per entrambi)
 
   let labels = [], dataA = [], dataD = [];
   let aTaxTot = 0, dTaxTot = 0, dTaxFromPacTot = 0, dTaxFromSellTot = 0;
@@ -230,33 +236,45 @@ function simulate() {
   for (let m = 1; m <= totalMonths; m++) {
     const monthInYear = ((m - 1) % 12) + 1;
 
-    // --- Crescita mensile: il guadagno del mese è la plusvalenza tassabile ---
-    const gainA = aPort * monthGrowth;
-    const gainD = dPort * monthGrowth;
-    aPort += gainA;
-    dPort += gainD;
+    // --- Crescita mensile (plusvalenza latente, non ancora realizzata) ---
+    aPort *= (1 + monthGrowth);
+    dPort *= (1 + monthGrowth);
 
-    // --- PAC mensile: capitale versato, non genera plusvalenza ---
+    // --- PAC mensile: capitale versato → aumenta valore E costo di carico ---
     if (monthly > 0) {
-      aPort += monthly;
-      dPort += monthly;
+      aPort += monthly; aCost += monthly;
+      dPort += monthly; dCost += monthly;
       totalInvested += monthly;
     }
 
-    // --- Amministrato: tassa pagata SUBITO, esce dal portafoglio ---
-    const tA = Math.max(0, gainA) * taxRate;
-    aPort -= tA;
-    aTaxTot += tA;
-
-    // --- Dichiarativo: tassa ACCUMULATA, resta investita fino a fine anno ---
-    dTaxYear += Math.max(0, gainD) * taxRate;
+    // --- Ribilanciamento: vendo+ricompro una fetta del portafoglio ---
+    // Amministrato: tassa sulla plusvalenza incorporata, pagata SUBITO
+    {
+      const sellVal  = aPort * monthlyTurnover;
+      const sellCost = aCost * monthlyTurnover;
+      const tA = Math.max(0, sellVal - sellCost) * taxRate;
+      aPort -= tA;
+      aTaxTot += tA;
+      aCost = aCost - sellCost + (sellVal - tA); // ricompro col netto d'imposta
+    }
+    // Dichiarativo: stessa plusvalenza, tassa ACCUMULATA per fine anno
+    {
+      const sellVal  = dPort * monthlyTurnover;
+      const sellCost = dCost * monthlyTurnover;
+      dTaxYear += Math.max(0, sellVal - sellCost) * taxRate;
+      dCost = dCost - sellCost + sellVal;        // ricompro col lordo
+    }
 
     // --- Fine anno: il dichiarativo salda le tasse accumulate ---
     if (monthInYear === 12) {
       const taxOwed = dTaxYear;
       const yearlyPac = 12 * monthly;
 
+      // Il pagamento esce dal portafoglio riducendone valore e costo di carico
+      // in proporzione (la % di plusvalenza latente resta invariata).
+      const fracSold = dPort > 0 ? taxOwed / dPort : 0;
       dPort -= taxOwed;
+      dCost *= (1 - fracSold);
       if (yearlyPac >= taxOwed) {
         dTaxFromPacTot += taxOwed;
       } else {
