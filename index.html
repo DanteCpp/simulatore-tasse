@@ -130,6 +130,10 @@
   </div>
 
   <div class="chart-wrap">
+    <canvas id="deltaChart"></canvas>
+  </div>
+
+  <div class="chart-wrap">
     <canvas id="chart"></canvas>
   </div>
 
@@ -206,7 +210,7 @@ function onNumber(key, raw) {
 }
 
 // ===================== SIMULAZIONE =====================
-let chart;
+let chart, deltaChart;
 
 function simulate() {
   const cap       = params.capital;
@@ -304,6 +308,35 @@ function simulate() {
   document.getElementById('ammTax').textContent  = '€ ' + Math.round(aTaxTot).toLocaleString('it-IT');
   document.getElementById('dicTax').textContent  = '€ ' + Math.round(dTaxTot).toLocaleString('it-IT');
   document.getElementById('dicFee').textContent  = '€ ' + Math.round(dFeeTot).toLocaleString('it-IT');
+
+  // --- Delta chart (Dichiarativo − Amministrato) ---
+  const dataDelta = dataD.map((v, i) => Math.round((v - dataA[i]) * 100) / 100);
+  if (deltaChart) deltaChart.destroy();
+  deltaChart = new Chart(document.getElementById('deltaChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Δ Dichiarativo − Amministrato', data: dataDelta,
+          backgroundColor: dataDelta.map(d => d >= 0 ? '#66bb6a' : '#ef5350'),
+          borderWidth: 0, categoryPercentage: 0.8, barPercentage: 0.9 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { labels: { color: '#999', usePointStyle: true, padding: 20, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => 'Δ: € ' + ctx.parsed.y.toLocaleString('it-IT', {maximumFractionDigits:0}) } }
+      },
+      scales: {
+        x: { ticks: { color: '#666', maxTicksLimit: 15, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#666', font: { size: 10 }, callback: v => '€ ' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+  document.getElementById('deltaChart').style.height = '180px';
 
   // --- Chart ---
   if (chart) chart.destroy();
