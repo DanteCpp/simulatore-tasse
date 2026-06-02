@@ -95,6 +95,7 @@
   .table-wrap {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 0.75rem; overflow-x: auto;
+    margin-bottom: 1rem;
   }
   table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   th, td { padding: 0.45rem 0.5rem; text-align: right; }
@@ -329,7 +330,8 @@ function simulate() {
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
       plugins: {
-        legend: { labels: { color: '#999', usePointStyle: true, padding: 20, font: { size: 12 } } },
+        title: { display: true, text: 'Differenza patrimonio (Dichiarativo − Amministrato)', color: '#e0e0e0', font: { size: 14, weight: '600' }, padding: { bottom: 12 } },
+        legend: { display: false },
         tooltip: { callbacks: { label: ctx => 'Δ: € ' + ctx.parsed.y.toLocaleString('it-IT', {maximumFractionDigits:0}) } }
       },
       scales: {
@@ -356,6 +358,7 @@ function simulate() {
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
       plugins: {
+        title: { display: true, text: 'Andamento del conto', color: '#e0e0e0', font: { size: 14, weight: '600' }, padding: { bottom: 12 } },
         legend: { labels: { color: '#999', usePointStyle: true, padding: 20, font: { size: 12 } } },
         tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': € ' + ctx.parsed.y.toLocaleString('it-IT', {maximumFractionDigits:0}) } }
       },
