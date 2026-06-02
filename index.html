@@ -119,13 +119,12 @@
     <div class="card amm">
       <h3>🏦 Regime Amministrato</h3>
       <div class="big" id="ammFinal">€ 0</div>
-      <div class="sub">Tasse pagate subito (a ogni vendita): <strong id="ammTax">€ 0</strong></div>
-      <div class="sub">Totale investito (capitale + PAC): <strong id="ammInv">€ 0</strong></div>
+      <div class="sub">Tasse pagate: <strong id="ammTax">€ 0</strong></div>
     </div>
     <div class="card dic">
       <h3>📝 Regime Dichiarativo</h3>
       <div class="big" id="dicFinal">€ 0</div>
-      <div class="sub">Tasse pagate a fine anno (vendita titoli): <strong id="dicTax">€ 0</strong></div>
+      <div class="sub">Tasse pagate: <strong id="dicTax">€ 0</strong></div>
       <div class="sub">Costi contabili totali: <strong id="dicFee">€ 0</strong></div>
     </div>
   </div>
@@ -228,7 +227,6 @@ function simulate() {
   // differenza tra i regimi è QUANDO si paga la tassa sul realizzato.
   let aPort = cap, aCost = cap; // Amministrato: tassa trattenuta subito
   let dPort = cap, dCost = cap; // Dichiarativo: tassa accumulata, saldata a fine anno
-  let totalInvested = cap;      // capitale + PAC cumulato (uguale per entrambi)
 
   let labels = [], dataA = [], dataD = [];
   let aTaxTot = 0, dTaxTot = 0, dFeeTot = 0;
@@ -247,7 +245,6 @@ function simulate() {
     if (monthly > 0) {
       aPort += monthly; aCost += monthly;
       dPort += monthly; dCost += monthly;
-      totalInvested += monthly;
     }
 
     // --- Ribilanciamento: vendo+ricompro una fetta del portafoglio ---
@@ -307,7 +304,6 @@ function simulate() {
   document.getElementById('ammTax').textContent  = '€ ' + Math.round(aTaxTot).toLocaleString('it-IT');
   document.getElementById('dicTax').textContent  = '€ ' + Math.round(dTaxTot).toLocaleString('it-IT');
   document.getElementById('dicFee').textContent  = '€ ' + Math.round(dFeeTot).toLocaleString('it-IT');
-  document.getElementById('ammInv').textContent = '€ ' + Math.round(totalInvested).toLocaleString('it-IT');
 
   // --- Chart ---
   if (chart) chart.destroy();
